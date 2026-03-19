@@ -1,0 +1,431 @@
+{
+  "name": "Bots de Agencia — Seguimiento Diagnóstico",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "efb5ccb7-a2f9-4fa0-ab2c-7b156a148bbc",
+        "responseMode": "immediatelyAfterReceive",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "node-webhook",
+      "name": "🌐 Formulario Landing",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "efb5ccb7-a2f9-4fa0-ab2c-7b156a148bbc"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "var-nombre",
+              "name": "nombre",
+              "value": "={{ $json.body.nombre || $json.nombre || 'Visitante' }}",
+              "type": "string"
+            },
+            {
+              "id": "var-empresa",
+              "name": "empresa",
+              "value": "={{ $json.body.empresa || $json.empresa || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "var-email",
+              "name": "email",
+              "value": "={{ $json.body.email || $json.email || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "var-whatsapp",
+              "name": "whatsapp",
+              "value": "={{ ($json.body.whatsapp || $json.whatsapp || '').replace(/\\D/g, '') }}",
+              "type": "string"
+            },
+            {
+              "id": "var-tipo",
+              "name": "tipo_empleado",
+              "value": "={{ $json.body.tipo_empleado || $json.tipo_empleado || 'empleado virtual' }}",
+              "type": "string"
+            },
+            {
+              "id": "var-proceso",
+              "name": "proceso_actual",
+              "value": "={{ $json.body.proceso_actual || $json.proceso_actual || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "var-fecha",
+              "name": "fecha_registro",
+              "value": "={{ new Date().toLocaleString('es-PE', {timeZone:'America/Lima', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) }}",
+              "type": "string"
+            },
+            {
+              "id": "var-estado",
+              "name": "estado",
+              "value": "nuevo",
+              "type": "string"
+            },
+            {
+              "id": "var-lead-id",
+              "name": "lead_id",
+              "value": "=BDA-{{ Date.now() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set",
+      "name": "⚙️ Normalizar datos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REEMPLAZA_CON_ID_DE_TU_GOOGLE_SHEET",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead ID": "={{ $json.lead_id }}",
+            "Fecha": "={{ $json.fecha_registro }}",
+            "Nombre": "={{ $json.nombre }}",
+            "Empresa": "={{ $json.empresa }}",
+            "Email": "={{ $json.email }}",
+            "WhatsApp": "={{ $json.whatsapp }}",
+            "Tipo Empleado": "={{ $json.tipo_empleado }}",
+            "Proceso Actual": "={{ $json.proceso_actual }}",
+            "Estado": "={{ $json.estado }}",
+            "Seguimiento D1": "",
+            "Seguimiento D3": "",
+            "Seguimiento D7": ""
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "node-sheets",
+      "name": "📊 Google Sheets — Registrar Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [680, 260],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REEMPLAZA_CON_ID_CREDENCIAL_GOOGLE",
+          "name": "Google Sheets — Bots de Agencia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.nombre }}, tu diagnóstico de empleado virtual está en camino ✅",
+        "emailType": "html",
+        "message": "=<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Diagnóstico confirmado</title>\n</head>\n<body style=\"margin:0;padding:0;background:#09090f;font-family:'Helvetica Neue',Arial,sans-serif;\">\n  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#09090f;padding:40px 20px;\">\n    <tr>\n      <td align=\"center\">\n        <table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#0e0d17;border-radius:16px;border:1px solid rgba(255,255,255,0.08);overflow:hidden;max-width:600px;width:100%;\">\n          <!-- Header -->\n          <tr>\n            <td style=\"background:linear-gradient(135deg,#7c3aed,#2563eb);padding:40px 40px 32px;text-align:center;\">\n              <div style=\"display:inline-block;background:rgba(255,255,255,0.15);border-radius:12px;padding:12px 20px;margin-bottom:20px;\">\n                <span style=\"color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.5px;\">🤖 Bots de Agencia</span>\n              </div>\n              <h1 style=\"color:#fff;font-size:26px;font-weight:800;margin:0;line-height:1.2;\">¡Solicitud recibida, {{ $json.nombre }}!</h1>\n              <p style=\"color:rgba(255,255,255,0.75);margin:12px 0 0;font-size:15px;\">Tu diagnóstico gratuito está en proceso</p>\n            </td>\n          </tr>\n          <!-- Body -->\n          <tr>\n            <td style=\"padding:40px;\">\n              <p style=\"color:#9490b0;font-size:15px;line-height:1.7;margin:0 0 24px;\">Hola <strong style=\"color:#f0eeff;\">{{ $json.nombre }}</strong>,</p>\n              <p style=\"color:#9490b0;font-size:15px;line-height:1.7;margin:0 0 24px;\">Recibimos tu solicitud de diagnóstico para <strong style=\"color:#f0eeff;\">{{ $json.empresa }}</strong>. Uno de nuestros especialistas en <strong style=\"color:#a78bfa;\">{{ $json.tipo_empleado }}</strong> se pondrá en contacto contigo en las próximas horas.</p>\n              <!-- Info box -->\n              <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:12px;margin-bottom:32px;\">\n                <tr>\n                  <td style=\"padding:24px;\">\n                    <p style=\"color:#a78bfa;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 16px;\">¿Qué verás en la llamada?</p>\n                    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">\n                      <tr><td style=\"padding:6px 0;\"><span style=\"color:#7c3aed;font-weight:700;margin-right:8px;\">✓</span><span style=\"color:#9490b0;font-size:14px;\">Mapa de tu flujo actual de leads y atención</span></td></tr>\n                      <tr><td style=\"padding:6px 0;\"><span style=\"color:#7c3aed;font-weight:700;margin-right:8px;\">✓</span><span style=\"color:#9490b0;font-size:14px;\">Propuesta de empleado virtual para tu caso</span></td></tr>\n                      <tr><td style=\"padding:6px 0;\"><span style=\"color:#7c3aed;font-weight:700;margin-right:8px;\">✓</span><span style=\"color:#9490b0;font-size:14px;\">Estimación de horas ahorradas y ROI</span></td></tr>\n                    </table>\n                  </td>\n                </tr>\n              </table>\n              <!-- CTA -->\n              <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:32px;\">\n                <tr>\n                  <td align=\"center\">\n                    <a href=\"https://wa.me/51999999999?text=Hola%2C%20soy%20{{ encodeURIComponent($json.nombre) }}%20y%20acabo%20de%20completar%20el%20formulario%20de%20diagn%C3%B3stico\" style=\"display:inline-block;background:#f5c518;color:#09090f;text-decoration:none;padding:16px 40px;border-radius:100px;font-weight:700;font-size:16px;\">Agendar por WhatsApp ahora →</a>\n                  </td>\n                </tr>\n              </table>\n              <p style=\"color:#4e4a6a;font-size:13px;line-height:1.6;margin:0;text-align:center;\">Este correo fue enviado porque completaste el formulario en botsdeagencia.com.<br>Tu información está segura y solo se usa para preparar tu diagnóstico.</p>\n            </td>\n          </tr>\n          <!-- Footer -->\n          <tr>\n            <td style=\"padding:24px 40px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;\">\n              <p style=\"color:#4e4a6a;font-size:12px;margin:0;\">© 2026 Bots de Agencia · <a href=\"https://botsdeagencia.com\" style=\"color:#7c3aed;text-decoration:none;\">botsdeagencia.com</a></p>\n            </td>\n          </tr>\n        </table>\n      </td>\n    </tr>\n  </table>\n</body>\n</html>",
+        "options": {
+          "replyTo": "hola@botsdeagencia.com"
+        }
+      },
+      "id": "node-email-d0",
+      "name": "📧 Email D0 — Confirmación inmediata",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [680, 400],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REEMPLAZA_CON_ID_CREDENCIAL_GMAIL",
+          "name": "Gmail — Bots de Agencia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "days"
+      },
+      "id": "node-wait-d1",
+      "name": "⏳ Esperar 24h",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [680, 560],
+      "webhookId": "wait-d1-bda"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.whatsapp-provider.com/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REEMPLAZA_CON_TU_API_KEY_WHATSAPP"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"{{ $json.whatsapp }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Hola {{ $json.nombre }} 👋\\n\\nSoy del equipo de *Bots de Agencia*. Hace 24h solicitaste información sobre un empleado virtual de tipo *{{ $json.tipo_empleado }}* para {{ $json.empresa }}.\\n\\n¿Tienes 30 minutos esta semana para tu diagnóstico gratuito? Solo dime qué día te viene bien y te confirmo horario 🗓️\"\n  }\n}",
+        "options": {}
+      },
+      "id": "node-wa-d1",
+      "name": "💬 WhatsApp D1 — Primer seguimiento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 560],
+      "notes": "⚠️ CONFIGURA TU PROVEEDOR DE WHATSAPP API\nOpciones recomendadas para LATAM:\n- 360dialog: https://docs.360dialog.com/whatsapp-api/whatsapp-api/sandbox\n- Twilio: https://www.twilio.com/docs/whatsapp/api\n- Meta Cloud API directa: https://developers.facebook.com/docs/whatsapp/cloud-api\n\nReemplaza la URL y el formato del body según tu proveedor."
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "days"
+      },
+      "id": "node-wait-d3",
+      "name": "⏳ Esperar 48h",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1120, 560],
+      "webhookId": "wait-d3-bda"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.whatsapp-provider.com/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REEMPLAZA_CON_TU_API_KEY_WHATSAPP"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"{{ $json.whatsapp }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.nombre }}, última consulta de mi parte 🙌\\n\\nTengo un espacio disponible esta semana para revisar tu caso de *{{ $json.tipo_empleado }}* en {{ $json.empresa }}.\\n\\nSi no es buen momento, no hay problema — te contacto en 30 días.\\n\\n¿Procedo con el diagnóstico o prefieres que te avise más adelante?\"\n  }\n}",
+        "options": {}
+      },
+      "id": "node-wa-d3",
+      "name": "💬 WhatsApp D3 — Último intento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 560]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.nombre }}, ¿todavía te interesa el diagnóstico? 🤔",
+        "emailType": "html",
+        "message": "=<!DOCTYPE html>\n<html lang=\"es\">\n<body style=\"margin:0;padding:0;background:#09090f;font-family:'Helvetica Neue',Arial,sans-serif;\">\n  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#09090f;padding:40px 20px;\">\n    <tr>\n      <td align=\"center\">\n        <table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#0e0d17;border-radius:16px;border:1px solid rgba(255,255,255,0.08);max-width:600px;width:100%;\">\n          <tr>\n            <td style=\"background:linear-gradient(135deg,#1e1b4b,#0c1445);padding:40px;text-align:center;\">\n              <h2 style=\"color:#fff;font-size:22px;font-weight:700;margin:0;\">¿Sigues evaluando opciones, {{ $json.nombre }}?</h2>\n              <p style=\"color:rgba(255,255,255,0.6);margin:12px 0 0;font-size:14px;\">Hace 3 días solicitaste info sobre empleados virtuales</p>\n            </td>\n          </tr>\n          <tr>\n            <td style=\"padding:40px;\">\n              <p style=\"color:#9490b0;font-size:15px;line-height:1.7;margin:0 0 24px;\">Hola <strong style=\"color:#f0eeff;\">{{ $json.nombre }}</strong>, notamos que aún no coordinamos tu llamada de diagnóstico.</p>\n              <p style=\"color:#9490b0;font-size:15px;line-height:1.7;margin:0 0 32px;\">Entiendo que estás ocupado. Por eso dejé este acceso directo para que puedas elegir el horario que más te convenga, sin llamadas previas:</p>\n              <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:32px;\">\n                <tr>\n                  <td align=\"center\">\n                    <a href=\"https://wa.me/51999999999?text=Hola%2C%20soy%20{{ encodeURIComponent($json.nombre) }}%20y%20quiero%20agendar%20mi%20diagn%C3%B3stico\" style=\"display:inline-block;background:#f5c518;color:#09090f;text-decoration:none;padding:16px 40px;border-radius:100px;font-weight:700;font-size:16px;\">Agendar diagnóstico ahora →</a>\n                  </td>\n                </tr>\n              </table>\n              <p style=\"color:#4e4a6a;font-size:13px;text-align:center;margin:0;\">Si ya no te interesa, simplemente ignora este correo.</p>\n            </td>\n          </tr>\n        </table>\n      </td>\n    </tr>\n  </table>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "node-email-d3",
+      "name": "📧 Email D3 — Reactivación",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1340, 400],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REEMPLAZA_CON_ID_CREDENCIAL_GMAIL",
+          "name": "Gmail — Bots de Agencia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 4,
+        "unit": "days"
+      },
+      "id": "node-wait-d7",
+      "name": "⏳ Esperar 4 días",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1560, 560],
+      "webhookId": "wait-d7-bda"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.whatsapp-provider.com/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REEMPLAZA_CON_TU_API_KEY_WHATSAPP"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"{{ $json.whatsapp }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Hola {{ $json.nombre }} 👋\\n\\nHace una semana solicitaste info sobre empleados virtuales para {{ $json.empresa }}.\\n\\n¿Sigues evaluando opciones? Te comparto un caso de una empresa similar que automatizó su atención al cliente y ahorró 15h/semana 👇\\n\\nhttps://botsdeagencia.com#testimonios\\n\\nCuando quieras retomar, estoy aquí 🙌\"\n  }\n}",
+        "options": {}
+      },
+      "id": "node-wa-d7",
+      "name": "💬 WhatsApp D7 — Reactivación final",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 560]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "REEMPLAZA_CON_ID_DE_TU_GOOGLE_SHEET",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Estado": "secuencia_completa",
+            "Seguimiento D7": "={{ new Date().toLocaleDateString('es-PE') }}"
+          },
+          "matchingColumns": ["Lead ID"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "node-sheets-close",
+      "name": "📊 Sheets — Cerrar secuencia",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [2000, 560],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REEMPLAZA_CON_ID_CREDENCIAL_GOOGLE",
+          "name": "Google Sheets — Bots de Agencia"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "hola@botsdeagencia.com",
+        "subject": "=🔔 Nuevo lead: {{ $json.nombre }} — {{ $json.empresa }}",
+        "emailType": "html",
+        "message": "=<h2>Nuevo lead registrado</h2>\n<table style=\"border-collapse:collapse;width:100%;font-family:Arial,sans-serif;\">\n  <tr style=\"background:#f5f5f5;\"><td style=\"padding:8px 12px;font-weight:bold;\">Lead ID</td><td style=\"padding:8px 12px;\">{{ $json.lead_id }}</td></tr>\n  <tr><td style=\"padding:8px 12px;font-weight:bold;\">Nombre</td><td style=\"padding:8px 12px;\">{{ $json.nombre }}</td></tr>\n  <tr style=\"background:#f5f5f5;\"><td style=\"padding:8px 12px;font-weight:bold;\">Empresa</td><td style=\"padding:8px 12px;\">{{ $json.empresa }}</td></tr>\n  <tr><td style=\"padding:8px 12px;font-weight:bold;\">Email</td><td style=\"padding:8px 12px;\">{{ $json.email }}</td></tr>\n  <tr style=\"background:#f5f5f5;\"><td style=\"padding:8px 12px;font-weight:bold;\">WhatsApp</td><td style=\"padding:8px 12px;\">{{ $json.whatsapp }}</td></tr>\n  <tr><td style=\"padding:8px 12px;font-weight:bold;\">Tipo empleado</td><td style=\"padding:8px 12px;\">{{ $json.tipo_empleado }}</td></tr>\n  <tr style=\"background:#f5f5f5;\"><td style=\"padding:8px 12px;font-weight:bold;\">Proceso actual</td><td style=\"padding:8px 12px;\">{{ $json.proceso_actual }}</td></tr>\n  <tr><td style=\"padding:8px 12px;font-weight:bold;\">Fecha</td><td style=\"padding:8px 12px;\">{{ $json.fecha_registro }}</td></tr>\n</table>\n<br>\n<p><a href=\"https://wa.me/{{ $json.whatsapp }}\" style=\"background:#25d366;color:white;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:bold;\">📱 Abrir WhatsApp con este lead</a></p>",
+        "options": {}
+      },
+      "id": "node-email-internal",
+      "name": "🔔 Notificación interna",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [680, 540],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REEMPLAZA_CON_ID_CREDENCIAL_GMAIL",
+          "name": "Gmail — Bots de Agencia"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "🌐 Formulario Landing": {
+      "main": [
+        [
+          { "node": "⚙️ Normalizar datos", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "⚙️ Normalizar datos": {
+      "main": [
+        [
+          { "node": "📊 Google Sheets — Registrar Lead", "type": "main", "index": 0 },
+          { "node": "📧 Email D0 — Confirmación inmediata", "type": "main", "index": 0 },
+          { "node": "🔔 Notificación interna", "type": "main", "index": 0 },
+          { "node": "⏳ Esperar 24h", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "⏳ Esperar 24h": {
+      "main": [
+        [
+          { "node": "💬 WhatsApp D1 — Primer seguimiento", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "💬 WhatsApp D1 — Primer seguimiento": {
+      "main": [
+        [
+          { "node": "⏳ Esperar 48h", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "⏳ Esperar 48h": {
+      "main": [
+        [
+          { "node": "💬 WhatsApp D3 — Último intento", "type": "main", "index": 0 },
+          { "node": "📧 Email D3 — Reactivación", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "💬 WhatsApp D3 — Último intento": {
+      "main": [
+        [
+          { "node": "⏳ Esperar 4 días", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "⏳ Esperar 4 días": {
+      "main": [
+        [
+          { "node": "💬 WhatsApp D7 — Reactivación final", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "💬 WhatsApp D7 — Reactivación final": {
+      "main": [
+        [
+          { "node": "📊 Sheets — Cerrar secuencia", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "bots-de-agencia" },
+    { "name": "seguimiento-leads" }
+  ],
+  "meta": {
+    "instanceId": "bots-de-agencia",
+    "notes": "Workflow de seguimiento automático para leads del formulario de diagnóstico.\nCreado con Perplexity Computer — https://www.perplexity.ai/computer\n\nCONFIGURACIÓN REQUERIDA:\n1. Credencial Google Sheets (OAuth2) → reemplaza REEMPLAZA_CON_ID_CREDENCIAL_GOOGLE\n2. Credencial Gmail (OAuth2) → reemplaza REEMPLAZA_CON_ID_CREDENCIAL_GMAIL\n3. ID del Google Sheet → reemplaza REEMPLAZA_CON_ID_DE_TU_GOOGLE_SHEET\n4. WhatsApp API Key → reemplaza REEMPLAZA_CON_TU_API_KEY_WHATSAPP\n5. Email interno → cambia hola@botsdeagencia.com en el nodo 'Notificación interna'\n6. Número WhatsApp en emails → cambia 51999999999 por tu número real"
+  }
+}
