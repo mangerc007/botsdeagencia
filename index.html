@@ -700,40 +700,75 @@
             </p>
           </form>
 
-          <!-- THANK YOU SCREEN — hidden by default, revealed by main.js -->
+          <!-- THANK YOU + CHAT — hidden by default, revealed by main.js -->
           <div class="thankyou-screen" id="thankyou-screen" aria-live="polite" aria-atomic="true">
 
-            <!-- Icono de éxito -->
-            <div class="thankyou-check" aria-hidden="true">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            <!-- Cabecera de éxito (compacta) -->
+            <div class="ty-header">
+              <div class="ty-check" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+              </div>
+              <div>
+                <h3 class="ty-title" id="ty-title">¡Datos recibidos!</h3>
+                <p class="ty-sub">Nuestro asistente te ayudará a agendar ahora mismo.</p>
+              </div>
             </div>
 
-            <!-- Título y descripción -->
-            <h3 class="thankyou-title">¡Gracias! Ahora agenda tu diagnóstico en 1 minuto</h3>
-            <p class="thankyou-desc">
-              Hemos recibido tus datos. A continuación, elige el mejor día y hora para tu llamada de 30 minutos con nuestro especialista.
-            </p>
+            <!-- ═══════════════════════════════════════════════════
+                 CHAT WEB — Widget de conversación
+                 ───────────────────────────────────────────────────
+                 Para conectar un bot real, tienes dos opciones:
 
-            <!--
-              ╔══════════════════════════════════════════════════════╗
-              ║  SCHEDULING BOT — inyectado dinámicamente por JS    ║
-              ║                                                      ║
-              ║  Este contenedor es rellenado por initSchedulingBot  ║
-              ║  en main.js según el valor de SCHEDULING_MODE:      ║
-              ║                                                      ║
-              ║  'whatsapp' → botón verde wa.me personalizado        ║
-              ║  'widget'   → snippet embebido (Calendly, BotWe...)  ║
-              ║                                                      ║
-              ║  Para configurar, edita las constantes en main.js:  ║
-              ║    SCHEDULING_MODE   → 'whatsapp' | 'widget'         ║
-              ║    WHATSAPP_NUMBER   → tu número sin +               ║
-              ║    WIDGET_EMBED_HTML → snippet de tu bot             ║
-              ╚══════════════════════════════════════════════════════╝
-            -->
-            <div id="scheduling-bot-container" style="display:none;" aria-label="Bot de agendamiento"></div>
+                 OPCIÓN A — Bot propio (n8n, BotWe, Landbot, etc.)
+                   Reemplaza el div #chat-widget por un <iframe>:
+                   <iframe src="https://tu-bot.com/chat" ...></iframe>
+
+                 OPCIÓN B — Chat externo (Tidio, Intercom, etc.)
+                   Carga su script en <head> y llama en main.js:
+                   window.tidioChatApi?.open();
+
+                 Por ahora: chat simulado con flujo de agendamiento.
+                 El bot guía al usuario hasta WhatsApp o Calendly.
+                 ═══════════════════════════════════════════════════ -->
+            <div class="chat-widget" id="chat-widget" role="log" aria-label="Chat con asistente virtual" style="display:none;">
+
+              <!-- Header del chat -->
+              <div class="chat-widget__header">
+                <div class="chat-agent-avatar" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="8" r="3"/><path d="M12 11v2m0 0v2m0-2h2m-2 0H10"/><rect x="3" y="16" width="18" height="5" rx="2"/></svg>
+                </div>
+                <div class="chat-agent-info">
+                  <span class="chat-agent-name">Asistente Virtual · Bots de Agencia</span>
+                  <span class="chat-agent-status">En línea ahora</span>
+                </div>
+              </div>
+
+              <!-- Mensajes -->
+              <div class="chat-messages" id="chat-messages" aria-live="polite"></div>
+
+              <!-- Quick replies -->
+              <div class="chat-replies" id="chat-replies"></div>
+
+              <!-- Input del usuario -->
+              <div class="chat-input-row" id="chat-input-row" style="display:none;">
+                <input
+                  type="text"
+                  id="chat-input"
+                  class="chat-input"
+                  placeholder="Escribe aquí..."
+                  aria-label="Escribe tu mensaje"
+                  maxlength="200"
+                  autocomplete="off"
+                >
+                <button class="chat-send" id="chat-send" aria-label="Enviar mensaje">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                </button>
+              </div>
+            </div>
+            <!-- END CHAT WIDGET -->
 
           </div>
-          <!-- END THANK YOU SCREEN -->
+          <!-- END THANK YOU + CHAT -->
         </div>
       </div>
 
