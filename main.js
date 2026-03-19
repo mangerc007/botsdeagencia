@@ -1,13 +1,13 @@
 /**
  * ============================================================
- * BOTS DE AGENCIA — main.js  v2
+ * BOTS DE AGENCIA — main.js  v3
  * ============================================================
  * Módulos:
  *   1. Navbar scroll-aware + hamburger
  *   2. Scroll animations (IntersectionObserver)
  *   3. FAQ accordion
  *   4. Form: validación + envío a webhook + pantalla de gracias
- *   5. Bot de agendamiento post-submit
+ *   5. Chat bot conversacional post-submit
  *   6. Smooth scroll fallback
  *
  * ════════════════════════════════════════════════════════════
@@ -22,18 +22,11 @@
  *       const WEBHOOK_LEADS_URL = '...'
  *     Reemplaza la URL de prueba por la de tu plataforma.
  *
- *  B) BOT DE AGENDAMIENTO post-submit
+ *  B) WHATSAPP — número real
  *     ──────────────────────────────────────────────────────
- *     Hay dos modos, elige uno:
- *
- *     MODO 1 — WhatsApp (más simple, funciona siempre)
- *       Busca: const WHATSAPP_NUMBER = '...'
- *       Pon tu número en formato internacional sin +
- *       Ejemplo: '51987654321'  (Perú 9 dígitos)
- *
- *     MODO 2 — Widget embebido (Calendly, Tidio, BotWe, etc.)
- *       Activa SCHEDULING_MODE = 'widget'
- *       y completa WIDGET_EMBED_HTML con el snippet de tu bot.
+ *     Busca: const WHATSAPP_NUMBER = '...'
+ *     Pon tu número en formato internacional sin +
+ *     Ejemplo: '51987654321'  (Perú 9 dígitos)
  *
  * ════════════════════════════════════════════════════════════
  */
@@ -57,7 +50,6 @@
  *   n8n:    'https://mi-instancia.n8n.cloud/webhook/diagnostico-bda'
  *   Make:   'https://hook.eu1.make.com/XXXXXXXXXXXXXXXXXX'
  *   Zapier: 'https://hooks.zapier.com/hooks/catch/XXXXX/YYYYY/'
- *   BotWe:  'https://api.botwe.io/v1/webhook/XXXXXXXXXX'
  *
  * Mientras no tengas URL real, se usa el endpoint de prueba
  * (httpbin.org) que acepta POST y devuelve los datos enviados.
@@ -70,21 +62,11 @@ const WEBHOOK_LEADS_URL = 'https://bots-de-agencia-n8n.ftl4jk.easypanel.host/web
 
 
 /**
- * ── B) MODO DEL BOT DE AGENDAMIENTO ─────────────────────────
- *
- * 'whatsapp' → muestra botón verde con link wa.me  (default)
- * 'widget'   → inyecta el HTML de tu widget embebido
- */
-const SCHEDULING_MODE = 'whatsapp';
-//                        ↑ Cambia a 'widget' si usas bot web
-
-
-/**
- * ── B.1) WHATSAPP — número y mensaje ─────────────────────────
+ * ── B) WHATSAPP — número y mensaje ─────────────────────────────
  *
  * Número sin + ni espacios. Formato internacional.
  * Ejemplo Perú: '51987654321'
- * El mensaje se personaliza con el nombre del lead.
+ * El chat bot personaliza el mensaje con el nombre del lead.
  */
 const WHATSAPP_NUMBER = '51999999999';
 //                        ↑ REEMPLAZA con tu número real
@@ -94,45 +76,6 @@ function buildWhatsAppText(nombre) {
   const saludo = nombre ? `Hola, soy ${nombre}.` : 'Hola.';
   return `${saludo} Acabo de completar el formulario de diagnóstico en botsdeagencia.com y quiero agendar mi llamada de 30 minutos con un especialista en empleados virtuales.`;
 }
-
-
-/**
- * ── B.2) WIDGET EMBEBIDO ─────────────────────────────────────
- *
- * Si usas Calendly, Tidio, BotWe, Landbot, HubSpot Meetings
- * u otro bot web, pega aquí el snippet que te da la plataforma.
- *
- * Ejemplos:
- *
- *   Calendly inline:
- *     '<div class="calendly-inline-widget" data-url="https://calendly.com/tu-link"
- *      style="min-width:320px;height:630px;"></div>
- *      <script src="https://assets.calendly.com/assets/external/widget.js" async></script>'
- *
- *   BotWe / Landbot iframe:
- *     '<iframe src="https://landbot.io/u/XXXXXX/index.html"
- *      style="width:100%;height:500px;border:none;border-radius:12px;"></iframe>'
- *
- *   Tidio / Intercom: solo necesitas cargar su script en <head>
- *     y llamar window.tidioChatApi.open() — ver initSchedulingBot()
- */
-const WIDGET_EMBED_HTML = `
-  <!-- REEMPLAZA ESTE BLOQUE con el snippet de tu bot de agendamiento -->
-  <div style="
-    background: rgba(124,58,237,0.08);
-    border: 1px dashed rgba(124,58,237,0.4);
-    border-radius: 12px;
-    padding: 32px 24px;
-    text-align: center;
-    font-family: 'Space Grotesk', sans-serif;
-  ">
-    <p style="color:#a78bfa;font-weight:600;margin-bottom:8px;">📅 Widget de agendamiento</p>
-    <p style="color:#9490b0;font-size:14px;line-height:1.6;">
-      Pega aquí el snippet de tu bot (Calendly, BotWe, Landbot, etc.)<br>
-      Edita la constante <code style="color:#f5c518">WIDGET_EMBED_HTML</code> en main.js
-    </p>
-  </div>
-`;
 
 
 /* ════════════════════════════════════════════════════════════
@@ -217,7 +160,7 @@ const WIDGET_EMBED_HTML = `
 
 
 /* ══════════════════════════════════════════════════════════
-   4. FORM: VALIDACIÓN + ENVÍO + GRACIAS + BOT
+   4. FORM: VALIDACIÓN + ENVÍO + GRACIAS + CHAT BOT
 ══════════════════════════════════════════════════════════ */
 (function initForm() {
   const form           = document.getElementById('diagnostic-form');
@@ -268,23 +211,10 @@ const WIDGET_EMBED_HTML = `
 
   // ── Envío al webhook ──────────────────────────────────────
   async function sendToWebhook(data) {
-    /**
-     * Esta función llama al WEBHOOK_LEADS_URL definido arriba.
-     * Si el webhook falla (error de red o status no-OK),
-     * lo logueamos pero NO bloqueamos la UX — el usuario
-     * siempre ve la pantalla de gracias.
-     */
     try {
       const res = await fetch(WEBHOOK_LEADS_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          /**
-           * Si tu webhook requiere autenticación, agrégala aquí:
-           * 'Authorization': 'Bearer TU_TOKEN_AQUI',
-           * 'x-api-key': 'TU_API_KEY_AQUI',
-           */
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
@@ -294,22 +224,18 @@ const WIDGET_EMBED_HTML = `
       }
     } catch (err) {
       console.warn('[BDA] Error de red al llamar webhook:', err.message);
-      // No relanzamos — la UX no se bloquea por errores del webhook
     }
   }
 
   // ── Mostrar pantalla de gracias ───────────────────────────
   function showThankYou(data) {
-    // 1. Ocultar formulario con fade
     form.style.transition = 'opacity 0.3s ease';
     form.style.opacity = '0';
     setTimeout(() => {
       form.style.display = 'none';
-      // 2. Mostrar pantalla de gracias
       thankyouScreen.classList.add('visible');
-      // 3. Inyectar bot de agendamiento
-      initSchedulingBot(data);
-      // 4. Hacer scroll para que sea visible sin esfuerzo
+      // Iniciar chat bot conversacional
+      initChatBot(data);
       requestAnimationFrame(() => {
         thankyouScreen.closest('.form-card')?.scrollIntoView({
           behavior: 'smooth',
@@ -336,10 +262,7 @@ const WIDGET_EMBED_HTML = `
 
     if (!validateForm(data)) return;
     setLoading(true);
-
-    // Llamada al webhook (no bloqueante si falla)
     await sendToWebhook(data);
-
     setLoading(false);
     showThankYou(data);
   }
@@ -349,109 +272,302 @@ const WIDGET_EMBED_HTML = `
 
 
 /* ══════════════════════════════════════════════════════════
-   5. BOT DE AGENDAMIENTO — se activa tras el submit
+   5. CHAT BOT CONVERSACIONAL — se activa tras el submit
 ══════════════════════════════════════════════════════════ */
 
+/* ── Helpers ──────────────────────────────────────────── */
+function labelTipoEmpleado(val) {
+  const map = {
+    'agendamiento':     'Agente de agendamiento',
+    'atencion':         'Atención al cliente 24/7',
+    'ventas':           'Agente de ventas',
+    'seguimiento':      'Seguimiento de leads',
+    'administrativo':   'Asistente administrativo',
+    'otro':             'Empleado virtual personalizado',
+  };
+  return map[val] || val || 'empleado virtual';
+}
+
+function formatPhone(raw) {
+  // Limpia el número: quita todo excepto dígitos y +
+  return raw ? raw.replace(/[^\d+]/g, '') : WHATSAPP_NUMBER;
+}
+
+/* ── Flujo del chat ───────────────────────────────────── */
 /**
- * initSchedulingBot(data)
- * ─────────────────────────────────────────────────────────
- * Se llama automáticamente después de mostrar la pantalla
- * de gracias. Recibe los datos del formulario para poder
- * personalizar el mensaje o el contexto del widget.
- *
- * Según SCHEDULING_MODE inyecta:
- *   'whatsapp' → botón verde wa.me con mensaje personalizado
- *   'widget'   → HTML del widget embebido
+ * Cada paso tiene:
+ *   id         — identificador único del paso
+ *   botMsgs    — array de mensajes del bot (strings o función(data))
+ *   replies    — array de { label, next, isWA?, isInput? }
+ *   inputMode  — true → mostrar campo de texto libre en lugar de quick replies
  */
-function initSchedulingBot(data) {
-  const container = document.getElementById('scheduling-bot-container');
-  if (!container) return;
+const CHAT_FLOW = [
+  {
+    id: 'welcome',
+    botMsgs: [
+      (d) => `¡Hola${d.nombre ? ', ' + d.nombre : ''}! 👋 Soy Aria, la asistente virtual de Bots de Agencia.`,
+      (d) => `Recibí tu solicitud para un ${labelTipoEmpleado(d.tipo_empleado)}. Estoy aquí para ayudarte a agendar tu diagnóstico gratuito de 30 minutos con uno de nuestros especialistas.`,
+      '¿Cómo quieres continuar?',
+    ],
+    replies: [
+      { label: '¡Perfecto, sigamos! 🚀', next: 'horario' },
+      { label: 'Tengo una duda', next: 'duda' },
+    ],
+  },
+  {
+    id: 'duda',
+    botMsgs: ['Claro, con gusto te respondo. ¿Sobre qué quieres saber más?'],
+    replies: [
+      { label: '¿Es realmente gratis?', next: 'gratis' },
+      { label: '¿Cuánto tarda implementar un bot?', next: 'tiempo' },
+      { label: 'Ya no tengo dudas 👍', next: 'horario' },
+    ],
+  },
+  {
+    id: 'gratis',
+    botMsgs: [
+      '¡Sí, 100% gratuito y sin compromiso! 🎁',
+      'En la llamada analizamos tu proceso actual, te mostramos qué se puede automatizar y te damos una propuesta clara. Sin letras pequeñas.',
+    ],
+    replies: [
+      { label: 'Quiero agendar ahora', next: 'horario' },
+      { label: '¿Y cuánto tarda la implementación?', next: 'tiempo' },
+    ],
+  },
+  {
+    id: 'tiempo',
+    botMsgs: [
+      'Los primeros resultados los ves entre 7 y 14 días hábiles ⚡',
+      'Empezamos con el proceso más crítico de tu negocio, lo automatizamos y medimos resultados desde el primer mes.',
+    ],
+    replies: [
+      { label: 'Quiero agendar', next: 'horario' },
+    ],
+  },
+  {
+    id: 'horario',
+    botMsgs: [
+      'Perfecto. ¿Qué día te viene mejor para la llamada? 📅',
+      'La sesión dura 30 minutos y es 100% por videollamada.',
+    ],
+    replies: [
+      { label: 'Hoy o mañana', next: 'confirmar' },
+      { label: 'Esta semana', next: 'confirmar' },
+      { label: 'La próxima semana', next: 'confirmar' },
+    ],
+    _selectedSlot: null, // se guarda al elegir
+  },
+  {
+    id: 'confirmar',
+    botMsgs: [
+      (d) => `Excelente${d.nombre ? ', ' + d.nombre : ''}! 🙌`,
+      (d) => `Voy a conectarte ahora mismo con un especialista por WhatsApp para confirmar el horario exacto de tu diagnóstico sobre ${labelTipoEmpleado(d.tipo_empleado)}.`,
+      'Presiona el botón de abajo para abrir WhatsApp con el mensaje listo.',
+    ],
+    replies: [
+      { label: '💬 Abrir WhatsApp ahora', next: 'whatsapp', isWA: true },
+      { label: 'Prefiero que me escriban a mí', next: 'esperar' },
+    ],
+  },
+  {
+    id: 'esperar',
+    botMsgs: [
+      '¡Anotado! 📝 Un especialista se pondrá en contacto contigo en las próximas 2-4 horas hábiles.',
+      (d) => `Te escribiremos al correo ${d.email} y también al WhatsApp ${d.whatsapp ? d.whatsapp : 'que nos dejaste'}.`,
+      '¿Hay algo más en lo que pueda ayudarte?',
+    ],
+    replies: [
+      { label: 'No, ¡gracias! 🎉', next: 'fin' },
+      { label: 'Sí, tengo otra pregunta', next: 'duda' },
+    ],
+  },
+  {
+    id: 'fin',
+    botMsgs: [
+      '¡Perfecto! Estamos muy emocionados de trabajar contigo. 🚀',
+      'Revisa tu correo en los próximos minutos — te enviaremos un resumen y los próximos pasos.',
+      '¿Nos vemos pronto?',
+    ],
+    replies: [
+      { label: '¡Hasta pronto! 👋', next: null },
+      { label: 'Abrir WhatsApp igual', next: 'whatsapp', isWA: true },
+    ],
+  },
+  {
+    id: 'whatsapp',
+    botMsgs: [
+      (d) => `Abriendo WhatsApp con el mensaje listo para ${d.nombre || 'ti'}...`,
+    ],
+    replies: [
+      { label: '💬 Ir a WhatsApp', next: null, isWA: true },
+    ],
+    _autoWA: true,
+  },
+];
 
-  if (SCHEDULING_MODE === 'widget') {
-    /**
-     * MODO WIDGET — inyecta el snippet del bot
-     * ─────────────────────────────────────────
-     * El HTML en WIDGET_EMBED_HTML puede contener <script> tags.
-     * Los insertamos como nodos reales para que el browser los ejecute.
-     */
-    container.innerHTML = '';
-    const wrapper = document.createElement('div');
-    wrapper.className = 'scheduling-widget-wrapper';
+/* ── Motor del chat bot ──────────────────────────────── */
+function initChatBot(data) {
+  // Guardamos datos en window para posibles integraciones externas
+  window.__leadData = data;
 
-    // Insertar HTML del widget
-    const tmp = document.createElement('div');
-    tmp.innerHTML = WIDGET_EMBED_HTML;
+  const widget      = document.getElementById('chat-widget');
+  const messagesEl  = document.getElementById('chat-messages');
+  const repliesEl   = document.getElementById('chat-replies');
+  const inputRow    = document.getElementById('chat-input-row');
+  const chatInput   = document.getElementById('chat-input');
+  const chatSendBtn = document.getElementById('chat-send');
 
-    // Mover nodos (ejecuta scripts inline)
-    Array.from(tmp.childNodes).forEach(node => {
-      if (node.tagName === 'SCRIPT') {
-        const s = document.createElement('script');
-        if (node.src) s.src = node.src;
-        else s.textContent = node.textContent;
-        s.async = true;
-        wrapper.appendChild(s);
-      } else {
-        wrapper.appendChild(node.cloneNode(true));
-      }
-    });
+  if (!widget || !messagesEl || !repliesEl) return;
 
-    container.appendChild(wrapper);
-    container.style.display = 'block';
+  // Mostrar el widget
+  widget.style.display = 'flex';
 
-    /**
-     * ── INTEGRACIÓN DE CHATS EXTERNOS ────────────────────────
-     * Si usas Tidio, Intercom o LiveChat que se cargan en <head>,
-     * puedes abrir su chat programáticamente desde aquí:
-     *
-     * Tidio:
-     *   window.tidioChatApi?.open();
-     *
-     * Intercom:
-     *   window.Intercom?.('show');
-     *
-     * LiveChat:
-     *   window.LC_API?.open_chat_window();
-     *
-     * BotWe (si usa método JS):
-     *   window.BotWe?.open();
-     */
+  let currentStep = null;
+  let selectedSlot = '';
 
-  } else {
-    /**
-     * MODO WHATSAPP (default)
-     * ─────────────────────────────────────────────────────────
-     * Construye el botón con número y mensaje personalizados.
-     * El nombre del lead se incluye en el mensaje de apertura.
-     */
-    const nombre  = data?.nombre  || '';
-    const msgText = buildWhatsAppText(nombre);
-    const waUrl   = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msgText)}`;
+  /* Añade un mensaje al chat con animación */
+  function appendMsg(text, role) {
+    const msg = document.createElement('div');
+    msg.className = `chat-msg chat-msg--${role}`;
 
-    container.innerHTML = `
-      <a
-        href="${waUrl}"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="thankyou-wa"
-        id="wa-schedule-btn"
-        aria-label="Agendar diagnóstico por WhatsApp (se abre en nueva pestaña)"
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
-        </svg>
-        Agendar por WhatsApp ahora
-      </a>
-      <p class="thankyou-note">
-        También nos pondremos en contacto contigo por correo en las próximas horas.
-      </p>
-    `;
-    container.style.display = 'block';
+    if (role === 'bot') {
+      // Avatar del bot
+      const avatar = document.createElement('div');
+      avatar.className = 'chat-msg__avatar';
+      avatar.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+      msg.appendChild(avatar);
+    }
 
-    // Auto-focus accesible en el botón
-    requestAnimationFrame(() => {
-      document.getElementById('wa-schedule-btn')?.focus({ preventScroll: true });
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-msg__bubble';
+    bubble.textContent = text;
+    msg.appendChild(bubble);
+
+    messagesEl.appendChild(msg);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  /* Muestra el indicador de escritura y lo elimina al terminar */
+  function showTyping() {
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-typing-bubble';
+    bubble.id = 'chat-typing';
+    bubble.innerHTML = '<span></span><span></span><span></span>';
+    messagesEl.appendChild(bubble);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return bubble;
+  }
+
+  /* Envía mensajes del bot de forma secuencial con delays */
+  function botSay(messages, onDone) {
+    if (!messages || !messages.length) { if (onDone) onDone(); return; }
+    let i = 0;
+    function sendNext() {
+      if (i >= messages.length) { if (onDone) onDone(); return; }
+      const rawMsg = messages[i];
+      const text   = typeof rawMsg === 'function' ? rawMsg(data) : rawMsg;
+      i++;
+
+      // Mostrar indicador de escritura
+      const typingEl = showTyping();
+      const delay = Math.min(600 + text.length * 18, 2200);
+
+      setTimeout(() => {
+        typingEl.remove();
+        appendMsg(text, 'bot');
+        // Pausa pequeña entre mensajes consecutivos
+        setTimeout(sendNext, i < messages.length ? 300 : 0);
+      }, delay);
+    }
+    sendNext();
+  }
+
+  /* Renderiza los botones de quick reply */
+  function renderReplies(replies) {
+    repliesEl.innerHTML = '';
+    if (!replies || !replies.length) {
+      repliesEl.style.display = 'none';
+      return;
+    }
+    repliesEl.style.display = 'flex';
+    replies.forEach(reply => {
+      const btn = document.createElement('button');
+      btn.className = 'chat-reply-btn';
+      btn.textContent = reply.label;
+      btn.addEventListener('click', () => handleReply(reply));
+      repliesEl.appendChild(btn);
     });
   }
+
+  /* Maneja la selección de una quick reply */
+  function handleReply(reply) {
+    // Deshabilitar todos los botones
+    repliesEl.querySelectorAll('.chat-reply-btn').forEach(b => b.disabled = true);
+    repliesEl.style.opacity = '0.5';
+
+    // Mostrar respuesta del usuario
+    appendMsg(reply.label.replace(/[🚀🎁⚡📅🙌💬📝🎉👋👍]/gu, '').trim(), 'user');
+
+    // Si es acción WhatsApp
+    if (reply.isWA) {
+      const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildWhatsAppText(data.nombre))}`;
+      // Abre en nueva pestaña
+      setTimeout(() => window.open(waUrl, '_blank', 'noopener,noreferrer'), 400);
+
+      // Mostrar mensaje de confirmación
+      setTimeout(() => {
+        repliesEl.style.display = 'none';
+        repliesEl.innerHTML = '';
+        const waBtn = document.createElement('a');
+        waBtn.href    = waUrl;
+        waBtn.target  = '_blank';
+        waBtn.rel     = 'noopener noreferrer';
+        waBtn.className = 'chat-reply-btn chat-reply-btn--wa';
+        waBtn.textContent = '💬 Ir a WhatsApp';
+        repliesEl.appendChild(waBtn);
+        repliesEl.style.display = 'flex';
+        repliesEl.style.opacity = '1';
+        botSay(['¡Listo! Se abrió WhatsApp con el mensaje personalizado. Si no se abrió automáticamente, usa el botón de abajo. 👇']);
+      }, 600);
+      return;
+    }
+
+    // Avanzar al siguiente paso
+    if (reply.next) {
+      setTimeout(() => goToStep(reply.next), 500);
+    } else {
+      // Fin del flujo
+      setTimeout(() => {
+        repliesEl.innerHTML = '';
+        repliesEl.style.display = 'none';
+        botSay(['¡Fue un placer! Hasta pronto. 👋']);
+      }, 400);
+    }
+  }
+
+  /* Navega a un paso del flujo */
+  function goToStep(stepId) {
+    const step = CHAT_FLOW.find(s => s.id === stepId);
+    if (!step) return;
+    currentStep = step;
+
+    repliesEl.innerHTML = '';
+    repliesEl.style.display = 'none';
+    repliesEl.style.opacity = '1';
+
+    // Auto-abrir WA en paso whatsapp
+    if (step._autoWA) {
+      const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildWhatsAppText(data.nombre))}`;
+      setTimeout(() => window.open(waUrl, '_blank', 'noopener,noreferrer'), 600);
+    }
+
+    botSay(step.botMsgs, () => {
+      renderReplies(step.replies);
+    });
+  }
+
+  // Iniciar flujo desde el primer paso
+  goToStep('welcome');
 }
 
 
