@@ -62,8 +62,11 @@
  * Mientras no tengas URL real, se usa el endpoint de prueba
  * (httpbin.org) que acepta POST y devuelve los datos enviados.
  */
-const WEBHOOK_LEADS_URL = 'https://bots-de-agencia-n8n.ftl4jk.easypanel.host/webhook/efb5ccb7-a2f9-4fa0-ab2c-7b156a148bbc';
-//                         ↑ Webhook n8n — Production URL del trigger
+const WEBHOOK_LEADS_URL = 'https://bots-de-agencia-n8n.ftl4jk.easypanel.host/webhook-test/efb5ccb7-a2f9-4fa0-ab2c-7b156a148bbc';
+//                         ↑ TEST URL — requiere "Listen for test event" activo en n8n
+//
+// Cuando tu workflow esté activo (toggle verde), cambia a Production URL:
+// const WEBHOOK_LEADS_URL = 'https://bots-de-agencia-n8n.ftl4jk.easypanel.host/webhook/efb5ccb7-a2f9-4fa0-ab2c-7b156a148bbc';
 
 
 /**
