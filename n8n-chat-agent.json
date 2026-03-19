@@ -1,0 +1,236 @@
+{
+  "name": "Bots de Agencia — Chat AI Agent (Web)",
+  "nodes": [
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bda-chat-agent",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "node-webhook-chat",
+      "name": "📩 Chat Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "bda-chat-agent"
+    },
+
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "msg-session",
+              "name": "sessionId",
+              "value": "={{ $json.body.sessionId || $json.body.whatsapp || $json.body.email || 'session-' + Date.now() }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-text",
+              "name": "userMessage",
+              "value": "={{ $json.body.message || $json.body.text || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-nombre",
+              "name": "nombre",
+              "value": "={{ $json.body.nombre || $json.body.name || 'Visitante' }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-empresa",
+              "name": "empresa",
+              "value": "={{ $json.body.empresa || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-tipo",
+              "name": "tipo_empleado",
+              "value": "={{ $json.body.tipo_empleado || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-proceso",
+              "name": "proceso_actual",
+              "value": "={{ $json.body.proceso_actual || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-is-first",
+              "name": "isFirstMessage",
+              "value": "={{ $json.body.isFirstMessage === true || $json.body.isFirstMessage === 'true' }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set-input",
+      "name": "📋 Preparar datos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300]
+    },
+
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={% if $json.isFirstMessage %}\nEl usuario acaba de registrarse. Inicia la conversación con el siguiente mensaje de bienvenida personalizado:\n\n\"¡Hola {{ $json.nombre }}! Soy Aria, tu asistente de evaluación de Bots de Agencia 🤖\n\nEstoy aquí para entender tu negocio y ayudarte a identificar qué procesos podemos automatizar con empleados virtuales de IA.\n\nCuéntanos sobre tus procesos actuales: ¿qué tareas repetitivas consume más tiempo a ti o a tu equipo?\"\n\nNO agregues nada más. Solo ese mensaje de presentación.\n{% else %}\n{{ $json.userMessage }}\n{% endif %}",
+        "options": {
+          "systemMessage": "=Eres Aria, la asistente virtual de evaluación de casos de uso de **Bots de Agencia** (botsdeagencia.com).\n\nTu misión es entender los procesos actuales del prospecto, identificar oportunidades de automatización y guiarlo hacia agendar un diagnóstico gratuito de 30 minutos con un especialista.\n\n## Contexto del prospecto\n- **Nombre:** {{ $json.nombre }}\n- **Empresa / Rubro:** {{ $json.empresa || 'No especificado' }}\n- **Tipo de empleado virtual de interés:** {{ $json.tipo_empleado || 'Por definir' }}\n- **Proceso actual descrito en formulario:** {{ $json.proceso_actual || 'No completado' }}\n\n## Tu personalidad\n- Empática, profesional y consultiva\n- Hablas en español latinoamericano, en tono cálido y directo\n- Haces UNA sola pregunta por mensaje (no bombardees con varias)\n- Tus respuestas son cortas: máximo 3-4 oraciones + la pregunta\n- Usas emojis con moderación (1-2 por mensaje máximo)\n\n## Flujo de conversación\n\n**FASE 1 — Diagnóstico de procesos (2-4 turnos)**\nPregunta sobre:\n1. Qué procesos manuales/repetitivos consumen más tiempo\n2. Qué canales usan (WhatsApp, email, web, Instagram)\n3. Cuántos contactos/consultas manejan por semana\n4. Qué herramientas usan hoy (CRM, hojas de cálculo, etc.)\n\n**FASE 2 — Identificación de oportunidades (1-2 turnos)**\nCon base en lo que te dijo, menciona brevemente qué tipo de bot/automatización encaja:\n- Bot de atención al cliente 24/7\n- Agente de calificación y seguimiento de leads\n- Bot de agendamiento automático\n- Asistente administrativo (reportes, resúmenes, alertas)\n\n**FASE 3 — Cierre (1 turno)**\nCuando ya tengas suficiente contexto (mínimo 3 turnos de conversación), invita a agendar:\n\"Con lo que me contaste, ya tengo suficiente para preparar una propuesta personalizada. ¿Te parece si agendamos una llamada de 30 minutos para mostrarte exactamente cómo lo implementaríamos para {{ $json.empresa || 'tu negocio' }}? Es totalmente gratuita y sin compromiso.\"\n\nSi el usuario pregunta sobre precios, responde: \"Los precios dependen del alcance del proyecto. En la llamada de diagnóstico te damos una propuesta clara con inversión exacta. Suelen estar entre $300 y $800 USD de implementación + soporte mensual.\"\n\nSi el usuario ya quiere cerrar/agendar antes del turno 3, ¡perfecto! Pasa directo a la invitación.\n\n## Importante\n- Nunca inventes datos técnicos que no sabes\n- Si no entiendes algo, pregunta con amabilidad\n- NUNCA digas que eres ChatGPT, GPT ni menciones OpenAI\n- Si te preguntan qué IA usas, di que eres Aria, la asistente de Bots de Agencia\n- Responde SIEMPRE en español"
+        }
+      },
+      "id": "node-ai-agent",
+      "name": "🤖 Aria — AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [700, 300]
+    },
+
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 500
+        }
+      },
+      "id": "node-openai-model",
+      "name": "🧠 GPT-4o Mini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [620, 520],
+      "credentials": {
+        "openAiApi": {
+          "id": "REEMPLAZA_CON_TU_ID_CREDENCIAL_OPENAI",
+          "name": "OpenAI account"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('📋 Preparar datos').item.json.sessionId }}",
+        "contextWindowLength": 10
+      },
+      "id": "node-memory",
+      "name": "🧠 Memoria Conversación",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [840, 520]
+    },
+
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"reply\": {{ JSON.stringify($json.output) }},\n  \"sessionId\": \"{{ $('📋 Preparar datos').item.json.sessionId }}\",\n  \"agent\": \"aria\",\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-respond",
+      "name": "📤 Responder al Chat",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [960, 300]
+    }
+
+  ],
+
+  "connections": {
+    "📩 Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "📋 Preparar datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Preparar datos": {
+      "main": [
+        [
+          {
+            "node": "🤖 Aria — AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Aria — AI Agent": {
+      "main": [
+        [
+          {
+            "node": "📤 Responder al Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 GPT-4o Mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🤖 Aria — AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Memoria Conversación": {
+      "ai_memory": [
+        [
+          {
+            "node": "🤖 Aria — AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+
+  "staticData": null,
+  "tags": ["bots-de-agencia", "chat-agent", "ia"],
+  "triggerCount": 1,
+  "updatedAt": "2026-03-19T00:00:00.000Z",
+  "versionId": "bda-chat-agent-v1",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "n8nVersion": "1.82.0"
+  }
+}
