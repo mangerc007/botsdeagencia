@@ -1153,7 +1153,8 @@ textarea.form-control { min-height: 100px; }
 .thankyou-screen {
   display: none;
   text-align: center;
-  padding: var(--space-8) 0;
+  padding: var(--space-6) 0 var(--space-2);
+  /* Sin padding-bottom extra: el bot-container se muestra justo debajo */
 }
 .thankyou-screen.visible { display: block; }
 .thankyou-check {
@@ -1172,18 +1173,29 @@ textarea.form-control { min-height: 100px; }
 }
 .thankyou-title {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 .thankyou-desc {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
-  max-width: 44ch;
+  max-width: 46ch;
   margin-inline: auto;
   line-height: 1.7;
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
+}
+
+/* Contenedor del bot de agendamiento — inyectado dinámicamente */
+#scheduling-bot-container {
+  margin-top: var(--space-2);
+  width: 100%;
+}
+.scheduling-widget-wrapper {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 .thankyou-wa {
   display: inline-flex;
